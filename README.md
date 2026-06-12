@@ -32,7 +32,7 @@ A lightweight CRM built for astrology practitioners to manage clients, schedule 
 ### 1. Install dependencies
 
 ```bash
-cd "/Users/tushar/Desktop/astrologer crm"
+cd "C:\Users\abc\Downloads\astrologer crm (1)\astrologer crm"
 npm install
 ```
 
