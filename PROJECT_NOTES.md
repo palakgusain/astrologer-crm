@@ -1,103 +1,234 @@
-# Project Notes — Astrologer CRM
+# Project Notes — Astrologer CRM Management System
 
 ## Tech Stack
 
-| Component   | Choice              | Rationale                                              |
-| ----------- | ------------------- | ------------------------------------------------------ |
-| Framework   | Next.js 15          | Full-stack in one repo; fast to ship for a 48h window  |
-| Database    | SQLite + Prisma     | Zero external setup; file-based DB is enough for demo  |
-| Language    | TypeScript          | Type safety across API and UI                          |
-| Styling     | Tailwind CSS v4     | Rapid UI development without a heavy component library |
-| Auth        | JWT + bcrypt        | Lightweight session auth without external services     |
-| Icons       | Lucide React        | Lightweight, consistent icon set                       |
+| Component      | Choice                       | Rationale                                                                |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| Framework      | Next.js 15                   | Full-stack architecture with frontend and backend in a single repository |
+| Database       | Neon PostgreSQL + Prisma ORM | Cloud-hosted relational database with production-ready persistence       |
+| Language       | TypeScript                   | Type safety across API routes, database operations, and UI               |
+| Styling        | Tailwind CSS v4              | Rapid and responsive UI development                                      |
+| Authentication | JWT + bcrypt                 | Lightweight authentication with secure password hashing                  |
+| ORM            | Prisma ORM                   | Type-safe database access and schema management                          |
+| Hosting        | Vercel                       | Fast deployment and seamless integration with Next.js                    |
+| Icons          | Lucide React                 | Lightweight and consistent icon system                                   |
 
 ## Architecture
 
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    Browser (React UI)                      │
+│ Login │ Dashboard │ Clients │ Consultations │ Payments     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          │ HTTP Requests + Session Cookie
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│          Next.js Middleware + API Route Handlers           │
+│ /api/auth  /api/clients  /api/consultations  /dashboard    │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          │ Prisma ORM
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Neon PostgreSQL Database                  │
+│        User │ Client ←→ Consultation (with payments)       │
+└─────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Browser (React)                      │
-│  Login │ Dashboard │ Clients │ Consultations            │
-└──────────────────────────┬──────────────────────────────┘
-                           │ fetch() + session cookie
-┌──────────────────────────▼──────────────────────────────┐
-│         Next.js Middleware + API Routes (auth guard)       │
-│  /api/auth  /api/clients  /api/consultations  /dashboard  │
-└──────────────────────────┬──────────────────────────────┘
-                           │ Prisma ORM
-┌──────────────────────────▼──────────────────────────────┐
-│                    SQLite (dev.db)                       │
-│         User │ Client ←→ Consultation (with payments)     │
-└─────────────────────────────────────────────────────────┘
+
+## Data Model
+
+### User
+
+Stores authentication and account information.
+
+Fields:
+
+* id
+* name
+* email
+* passwordHash
+* createdAt
+* updatedAt
+
+### Client
+
+Stores astrology client information.
+
+Fields:
+
+* Contact Information
+* Birth Date
+* Birth Time
+* Birth Place
+* Tags
+* Notes
+
+### Consultation
+
+Stores consultation and payment information.
+
+Fields:
+
+* Scheduled Date & Time
+* Consultation Type
+* Duration
+* Status
+* Session Notes
+* Fee
+* Payment Status
+* Payment Method
+* Payment Notes
+
+Relationship:
+
+* One Client → Many Consultations
+* Consultation records are automatically deleted when the associated client is removed (Cascade Delete)
+
+## Authentication
+
+Authentication is implemented using JWT-based session management.
+
+Features:
+
+* Email and Password Login
+* bcrypt Password Hashing
+* HTTP-Only Session Cookies
+* Protected API Routes
+* Protected Dashboard Pages
+* Middleware-Based Route Protection
+
+Demo Credentials:
+
+```text
+Email: astrologer@crm.com
+Password: password123
 ```
 
-### Data Model
+Protected Routes:
 
-- **User** — Astrologer login (email, password hash, name)
-- **Client** — Core entity with contact info, birth details (date/time/place), tags, and general notes
-- **Consultation** — Linked to a client; stores schedule, type, duration, status, session notes, and payment fields (fee, paymentStatus, paymentMethod, paidAt, paymentNotes)
+* Dashboard
+* Clients
+* Consultations
+* Payment Features
+* API Endpoints
 
-Relationship: one client has many consultations (cascade delete).
+## Payment Tracking
 
-### Authentication
+Payment information is maintained directly within consultation records.
 
-- Email/password login with bcrypt password hashing
-- JWT stored in HTTP-only cookie (`acrm_session`, 7-day expiry)
-- Next.js middleware protects all pages and API routes except `/login` and `/api/auth`
-- Single demo user seeded: `astrologer@crm.com` / `password123`
+Features:
 
-### Payment Tracking
+* Consultation Fee Tracking
+* Payment Status Management
+* Payment Method Recording
+* Revenue Monitoring
+* Pending Payment Tracking
 
-- **Fee** — Consultation charge in INR
-- **Payment status** — `pending`, `paid`, `partial`, `waived`
-- **Payment method** — `cash`, `upi`, `bank_transfer`, `card`
-- **Paid at** — Auto-set when status changes to `paid`
-- Dashboard shows total revenue (sum of paid fees) and pending payment count
+Supported Payment Statuses:
 
-### Key Design Decisions
+* Pending
+* Paid
+* Partial
+* Waived
 
-1. **Monolithic Next.js app** — Chosen over separate frontend/backend to reduce setup overhead.
-2. **Custom JWT auth** — Avoids NextAuth complexity for a single-user assignment scope.
-3. **Payment on Consultation** — Keeps billing tied to sessions rather than a separate invoices table.
-4. **REST API routes** — All routes require authentication via shared `requireAuth()` helper.
+Supported Payment Methods:
+
+* Cash
+* UPI
+* Bank Transfer
+* Card
+
+Dashboard Revenue Metrics:
+
+* Total Revenue
+* Pending Payments
+* Paid Consultations
+
+## Key Design Decisions
+
+### 1. Full-Stack Next.js Architecture
+
+A single repository was chosen to simplify development, deployment, and maintenance.
+
+### 2. Neon PostgreSQL
+
+Neon PostgreSQL was selected instead of SQLite to support cloud deployment and persistent production data.
+
+### 3. Prisma ORM
+
+Prisma provides type-safe queries, schema management, and easy migration handling.
+
+### 4. Custom JWT Authentication
+
+JWT authentication provides lightweight security without requiring external authentication providers.
+
+### 5. Payment Tracking Within Consultations
+
+Payment data is linked directly to consultations, reducing schema complexity while maintaining business requirements.
+
+### 6. API-Driven Design
+
+All business logic is exposed through secure API routes, improving maintainability and scalability.
 
 ## Assumptions
 
-1. **Single user** — One astrologer account; multi-tenant support not implemented.
-2. **INR currency** — Fees displayed in Indian Rupees.
-3. **Birth time format** — Stored as a simple time string (HH:MM).
-4. **Indian locale** — Date formatting uses `en-IN` locale.
-5. **SQLite is sufficient** — For demo/assignment purposes; production would use PostgreSQL.
+1. Single astrologer account is used for the application.
+2. Indian Rupee (INR) is used for payment calculations.
+3. Birth time is stored in HH:MM format.
+4. Date formatting follows Indian locale conventions.
+5. Internet connectivity is available for cloud database access.
+6. Authentication is required before accessing CRM functionality.
 
 ## What Was Built (Scope)
 
-| Feature                    | Status |
-| -------------------------- | ------ |
-| Authentication (login/logout) | Done |
-| Client CRUD                | Done   |
-| Birth details (date/time/place) | Done |
-| Client tags and notes      | Done   |
-| Consultation scheduling    | Done   |
-| Session notes              | Done   |
-| Payment tracking           | Done   |
-| Revenue dashboard stats    | Done   |
-| Status management          | Done   |
-| Dashboard with stats       | Done   |
-| Client search              | Done   |
-| Consultation filters       | Done   |
-| Seed data                  | Done   |
+| Feature                       | Status |
+| ----------------------------- | ------ |
+| Authentication (Login/Logout) | Done   |
+| Protected Routes              | Done   |
+| Client CRUD Operations        | Done   |
+| Birth Details Management      | Done   |
+| Client Notes & Tags           | Done   |
+| Consultation Scheduling       | Done   |
+| Session Notes                 | Done   |
+| Payment Tracking              | Done   |
+| Revenue Dashboard             | Done   |
+| Dashboard Analytics           | Done   |
+| Search Functionality          | Done   |
+| Consultation Filters          | Done   |
+| PostgreSQL Integration        | Done   |
+| Vercel Deployment Support     | Done   |
+| Seed Data Generation          | Done   |
 
 ## Future Improvements
 
-- **Reminders** — Email/SMS notifications for upcoming consultations
-- **Birth chart storage** — Upload or link generated kundli/chart PDFs
-- **Calendar view** — Visual weekly/monthly schedule
-- **Export** — CSV export of clients and consultation history
-- **Multi-user support** — Separate accounts for multiple astrologers
-- **Payment receipts** — Generate PDF invoices per consultation
+* WhatsApp Integration
+* Email/SMS Appointment Reminders
+* Kundli PDF Upload and Storage
+* AI-Based Astrology Recommendations
+* Calendar View
+* Revenue Reports and Analytics
+* CSV/Excel Export
+* Multi-User Support
+* Role-Based Access Control
+* Payment Receipt Generation
 
 ## Known Limitations
 
-- No password reset or registration flow
-- No pagination on list views
-- Delete operations have no undo
-- Invalid client ID on consultation create returns 500
+* No password reset functionality
+* No self-registration flow
+* No pagination for large datasets
+* No email notification service
+* Limited analytics and reporting
+* Single-user architecture only
+
+## Deployment
+
+Production deployment stack:
+
+* Vercel
+* Neon PostgreSQL
+* Prisma ORM
+* Next.js 15
+
+This architecture provides secure authentication, persistent cloud storage, and scalable hosting suitable for production environments.
