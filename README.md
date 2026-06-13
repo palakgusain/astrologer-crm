@@ -2,6 +2,9 @@
 
 A modern Customer Relationship Management (CRM) application designed for astrology practitioners to manage clients, consultations, session notes, and payment records through a centralized dashboard.
 
+# LIVE DEMO 
+astrologer-crm-eta.vercel.app
+
 ## Features
 
 ### Authentication & Security
